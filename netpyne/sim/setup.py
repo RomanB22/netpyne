@@ -318,14 +318,14 @@ def setupRecordLFP():
 
     nsites = len(sim.cfg.recordLFP)
     saveSteps = int(np.ceil(sim.cfg.duration / sim.cfg.recordStep))
-    sim.simData['LFP'] = np.zeros((saveSteps, nsites))
+    sim.simData['LFP'] = np.zeros((saveSteps, nsites), dtype=np.float32)
     if sim.cfg.saveLFPCells:
         if sim.cfg.saveLFPCells == True:
             cellsRecordLFP = utils.getCellsList(['all'])  # record all cells
         elif isinstance(sim.cfg.saveLFPCells, list):
             cellsRecordLFP = utils.getCellsList(sim.cfg.saveLFPCells)
         for c in cellsRecordLFP:
-            sim.simData['LFPCells'][c.gid] = np.zeros((saveSteps, nsites))
+            sim.simData['LFPCells'][c.gid] = np.zeros((saveSteps, nsites), dtype=np.float32)
 
     if sim.cfg.saveLFPPops:
         if not hasattr(sim.net, 'popForEachGid'):
@@ -341,7 +341,7 @@ def setupRecordLFP():
 
         for pop in popsRecordLFP:
             sim.net.popForEachGid.update({gid: pop for gid in sim.net.pops[pop].cellGids})
-            sim.simData['LFPPops'][pop] = np.zeros((saveSteps, nsites))
+            sim.simData['LFPPops'][pop] = np.zeros((saveSteps, nsites), dtype=np.float32)
 
     if not sim.net.params.defineCellShapes:
         sim.net.defineCellShapes()  # convert cell shapes (if not previously done already)
@@ -355,9 +355,22 @@ def setupRecordLFP():
             cellsRecordIMembrane = utils.getCellsList(sim.cfg.saveIMembrane)
 
         for c in cellsRecordIMembrane:
-            sim.simData['iMembrane'][c.gid] = np.zeros((saveSteps, c.getNumberOfSegments()))
+            sim.simData['iMembrane'][c.gid] = np.zeros((saveSteps, c.getNumberOfSegments()), dtype=np.float32)
 
     if sim.cfg.createNEURONObj:
+        if sim.cfg.coreneuron:
+            # CoreNEURON does not support Python callbacks (cvode.event / FInitializeHandler)
+            # or PtrVector during simulation. Instead, use h.Vector.record() which CoreNEURON
+            # supports natively. LFP is then computed post-hoc in calculateLFPPosthoc().
+            total_segs = sum(cell.getNumberOfSegments() for cell in sim.net.compartCells)
+            mem_gb = total_segs * saveSteps * 4 / 1e9  # float32 bytes per element
+            if sim.rank == 0 and mem_gb > 1.0:
+                print(
+                    f'  Warning: CoreNEURON LFP recording requires ~{mem_gb:.1f} GB for '
+                    f'i_membrane_ vectors ({total_segs} segments x {saveSteps} steps). '
+                    f'Increase cfg.recordStep (currently {sim.cfg.recordStep} ms) to reduce memory.'
+                )
+
         for cell in sim.net.compartCells:
             nseg = cell.getNumberOfSegments()
 
@@ -366,12 +379,23 @@ def setupRecordLFP():
                     cell.gid, cell._segCoords
                 )  # transfer resistance for each cell
 
-            cell.imembPtr = h.PtrVector(nseg)  # pointer vector
-            if neuron_version < '9.0.0':
-                cell.imembPtr.ptr_update_callback(
-                    cell.setImembPtr
-                )  # used for gathering an array of  i_membrane values from the pointer vector
-            cell.imembVec = h.Vector(nseg)
+            if sim.cfg.coreneuron:
+                # Record i_membrane_ at recordStep intervals via Vector.record (CoreNEURON-compatible).
+                # Vectors are freed cell-by-cell in calculateLFPPosthoc() to minimise peak memory.
+                cell.imembVecs = []
+                for sec in list(cell.secs.values()):
+                    hSec = sec['hObj']
+                    for seg in hSec:
+                        vec = h.Vector()
+                        vec.record(seg._ref_i_membrane_, sim.cfg.recordStep)
+                        cell.imembVecs.append(vec)
+            else:
+                cell.imembPtr = h.PtrVector(nseg)  # pointer vector
+                if neuron_version < '9.0.0':
+                    cell.imembPtr.ptr_update_callback(
+                        cell.setImembPtr
+                    )  # used for gathering an array of i_membrane values from the pointer vector
+                cell.imembVec = h.Vector(nseg)
 
         sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable
         sim.cfg.use_fast_imem = True

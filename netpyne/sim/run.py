@@ -94,8 +94,10 @@ def preRun():
                         else:
                             stim['hObj'].noiseFromRandom(stim['hRandom'])
 
-    # handler for recording LFP
-    if sim.cfg.recordLFP or sim.cfg.saveIMembrane:
+    # handler for recording LFP (online, event-driven)
+    # Skipped for CoreNEURON: cvode.event() and FInitializeHandler are not supported during
+    # CoreNEURON execution. LFP is computed post-hoc via calculateLFPPosthoc() instead.
+    if (sim.cfg.recordLFP or sim.cfg.saveIMembrane) and not getattr(sim.cfg, 'coreneuron', False):
 
         def recordLFPHandler():
             sim.cvode.event(h.t + float(sim.cfg.recordStep), sim.calculateLFP)
@@ -174,6 +176,12 @@ def runSim(skipPreRun=False):
             print('\nRunning simulation using NEURON for %s ms...' % sim.cfg.duration)
 
     postRun()
+
+    # CoreNEURON does not support online LFP callbacks; compute LFP post-hoc from recorded vectors.
+    if sim.cfg.coreneuron and (sim.cfg.recordLFP or sim.cfg.saveIMembrane):
+        if sim.rank == 0:
+            print('  Computing LFP post-hoc from recorded i_membrane_ vectors...')
+        sim.calculateLFPPosthoc()
 
 
 def postRun(stopTime=None):
@@ -324,6 +332,70 @@ def calculateLFP():
                 sim.simData['LFPCells'][gid][saveStep - 1, :] = ecp  # contribution of individual cells (stored optionally)
 
             sim.simData['LFP'][saveStep - 1, :] += ecp  # sum of all cells
+
+
+# ------------------------------------------------------------------------------
+# Calculate LFP post-hoc from Vector.record data (CoreNEURON only)
+# ------------------------------------------------------------------------------
+def calculateLFPPosthoc():
+    """Compute LFP/iMembrane post-hoc from i_membrane_ vectors recorded via h.Vector.record().
+
+    Used when cfg.coreneuron=True because CoreNEURON does not support cvode.event() callbacks
+    or PtrVector during simulation. Each cell's vectors are freed immediately after processing
+    to keep peak memory proportional to one cell's data rather than the whole network's.
+    """
+
+    from .. import sim
+
+    nsteps = sim.simData['LFP'].shape[0] if sim.cfg.recordLFP else None
+    if nsteps is None and sim.cfg.saveIMembrane and sim.simData['iMembrane']:
+        sample_gid = next(iter(sim.simData['iMembrane']))
+        nsteps = sim.simData['iMembrane'][sample_gid].shape[0]
+    if nsteps is None:
+        return
+
+    for cell in sim.net.compartCells:
+        gid = cell.gid
+        if not hasattr(cell, 'imembVecs') or not cell.imembVecs:
+            continue
+
+        nseg = len(cell.imembVecs)
+        im_matrix = np.empty((nseg, nsteps), dtype=np.float32)
+
+        for i, vec in enumerate(cell.imembVecs):
+            arr = vec.as_numpy()
+            # h.Vector.record() includes t=0; the online handler fires first at t=recordStep,
+            # so skip index 0 to match the online convention (indices 0..nsteps-1 cover
+            # t=recordStep .. duration).
+            arr = arr[1:] if len(arr) > 1 else arr
+            n = min(len(arr), nsteps)
+            im_matrix[i, :n] = arr[:n]
+            if n < nsteps:
+                im_matrix[i, n:] = 0.0
+            vec.resize(0)  # release NEURON memory immediately
+        cell.imembVecs = []  # drop Python references so GC can reclaim
+
+        if sim.cfg.saveIMembrane and gid in sim.simData['iMembrane']:
+            sim.simData['iMembrane'][gid][:, :] = im_matrix.T  # (nsteps, nseg)
+
+        if sim.cfg.recordLFP:
+            tr = sim.net.recXElectrode.getTransferResistance(gid)  # (nsites, nseg)
+            ecp = np.dot(tr, im_matrix)  # (nsites, nsteps)
+            ecp_T = ecp.T.astype(np.float32)  # (nsteps, nsites)
+
+            sim.simData['LFP'] += ecp_T
+
+            if sim.cfg.saveLFPCells and gid in sim.simData['LFPCells']:
+                sim.simData['LFPCells'][gid][:, :] = ecp_T
+
+            if (
+                sim.cfg.saveLFPPops
+                and hasattr(sim.net, 'popForEachGid')
+                and gid in sim.net.popForEachGid
+            ):
+                pop = sim.net.popForEachGid[gid]
+                if pop in sim.simData['LFPPops']:
+                    sim.simData['LFPPops'][pop] += ecp_T
 
 
 # ------------------------------------------------------------------------------

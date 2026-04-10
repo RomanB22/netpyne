@@ -32,7 +32,7 @@ from .setup import (
 )
 
 # import run functions
-from .run import preRun, runSim, runSimWithIntervalFunc, loadBalance, calculateLFP, calculateDipole
+from .run import preRun, runSim, runSimWithIntervalFunc, loadBalance, calculateLFP, calculateLFPPosthoc, calculateDipole
 
 # import gather functions
 from .gather import gatherData, _gatherAllCellTags, _gatherAllCellConnPreGids, _gatherCells, gatherDataFromFiles
