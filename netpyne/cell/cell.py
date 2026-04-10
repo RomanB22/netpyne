@@ -352,7 +352,10 @@ class Cell(object):
                                     sim.simData[key]['cell_' + str(self.gid)][secLoc] = h.Vector(
                                         sim.cfg.duration / recordStep + 1
                                     ).resize(0)
-                                    sim.simData[key]['cell_' + str(self.gid)][secLoc].record(ptrItem, recordStep)
+                                    if sim.cfg.coreneuron:
+                                        sim.simData[key]['cell_' + str(self.gid)][secLoc].record(ptrItem)
+                                    else:
+                                        sim.simData[key]['cell_' + str(self.gid)][secLoc].record(ptrItem, recordStep)
                         else:
                             if hasattr(sim.cfg, 'use_local_dt') and sim.cfg.use_local_dt:
                                 self.secs[params['sec']]['hObj'].push()
@@ -373,7 +376,10 @@ class Cell(object):
                                 sim.simData[key]['cell_' + str(self.gid)] = h.Vector(
                                     sim.cfg.duration / sim.cfg.recordStep + 1
                                 ).resize(0)
-                                sim.simData[key]['cell_' + str(self.gid)].record(ptr, sim.cfg.recordStep)
+                                if sim.cfg.coreneuron:
+                                    sim.simData[key]['cell_' + str(self.gid)].record(ptr)
+                                else:
+                                    sim.simData[key]['cell_' + str(self.gid)].record(ptr, sim.cfg.recordStep)
                         if sim.cfg.verbose:
                             print('  Recording ', key, 'from cell ', self.gid, ' with parameters: ', str(params))
                             print(sim.simData[key]['cell_' + str(self.gid)])
