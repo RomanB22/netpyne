@@ -106,8 +106,10 @@ def preRun():
         sim.recordLFPHandler = recordLFPHandler
         sim.fih.append(h.FInitializeHandler(0, sim.recordLFPHandler))  # initialize imemb
 
-    # handler for recording LFP
-    if sim.cfg.recordDipole:
+    # handler for recording dipole (online, event-driven)
+    # Skipped for CoreNEURON: cvode.event() and FInitializeHandler are not supported during
+    # CoreNEURON execution. Dipole is computed post-hoc via calculateLFPPosthoc() instead.
+    if sim.cfg.recordDipole and not getattr(sim.cfg, 'coreneuron', False):
 
         def recordDipoleHandler():
             sim.cvode.event(h.t + float(sim.cfg.recordStep), sim.calculateDipole)
@@ -177,10 +179,10 @@ def runSim(skipPreRun=False):
 
     postRun()
 
-    # CoreNEURON does not support online LFP callbacks; compute LFP post-hoc from recorded vectors.
-    if sim.cfg.coreneuron and (sim.cfg.recordLFP or sim.cfg.saveIMembrane):
+    # CoreNEURON does not support online LFP/dipole callbacks; compute post-hoc from recorded vectors.
+    if sim.cfg.coreneuron and (sim.cfg.recordLFP or sim.cfg.saveIMembrane or sim.cfg.recordDipole):
         if sim.rank == 0:
-            print('  Computing LFP post-hoc from recorded i_membrane_ vectors...')
+            print('  Computing LFP/dipole post-hoc from recorded i_membrane_ vectors...')
         sim.calculateLFPPosthoc()
 
 
@@ -338,7 +340,7 @@ def calculateLFP():
 # Calculate LFP post-hoc from Vector.record data (CoreNEURON only)
 # ------------------------------------------------------------------------------
 def calculateLFPPosthoc():
-    """Compute LFP/iMembrane post-hoc from i_membrane_ vectors recorded via h.Vector.record().
+    """Compute LFP, iMembrane, and/or dipole post-hoc from i_membrane_ vectors recorded via h.Vector.record().
 
     Used when cfg.coreneuron=True because CoreNEURON does not support cvode.event() callbacks
     or PtrVector during simulation. Each cell's vectors are freed immediately after processing
@@ -351,6 +353,8 @@ def calculateLFPPosthoc():
     if nsteps is None and sim.cfg.saveIMembrane and sim.simData['iMembrane']:
         sample_gid = next(iter(sim.simData['iMembrane']))
         nsteps = sim.simData['iMembrane'][sample_gid].shape[0]
+    if nsteps is None and sim.cfg.recordDipole:
+        nsteps = sim.simData['dipoleSum'].shape[0]
     if nsteps is None:
         return
 
@@ -396,6 +400,24 @@ def calculateLFPPosthoc():
                 pop = sim.net.popForEachGid[gid]
                 if pop in sim.simData['LFPPops']:
                     sim.simData['LFPPops'][pop] += ecp_T
+
+        if sim.cfg.recordDipole and hasattr(cell, 'M'):
+            p = cell.M @ im_matrix  # (3, nsteps)
+            p_T = p.T.astype(np.float64)  # (nsteps, 3) — dipoleSum uses float64
+
+            sim.simData['dipoleSum'][:nsteps] += p_T
+
+            if sim.cfg.saveDipoleCells and gid in sim.simData['dipoleCells']:
+                sim.simData['dipoleCells'][gid][:nsteps] = p_T
+
+            if (
+                sim.cfg.saveDipolePops
+                and hasattr(sim.net, 'popForEachGid')
+                and gid in sim.net.popForEachGid
+            ):
+                pop = sim.net.popForEachGid[gid]
+                if pop in sim.simData['dipolePops']:
+                    sim.simData['dipolePops'][pop][:nsteps] += p_T
 
 
 # ------------------------------------------------------------------------------

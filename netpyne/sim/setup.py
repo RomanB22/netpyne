@@ -448,6 +448,9 @@ def setupRecordDipole():
     sim.net.calcSegCoords()  # calculate segment coords for each cell
 
     if sim.cfg.createNEURONObj:
+        sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable (must be before Vector.record calls)
+        sim.cfg.use_fast_imem = True
+
         for cell in sim.net.compartCells:
             lfpykitCell = lfpykit.CellGeometry(
                 x=np.array([[p0, p1] for p0, p1 in zip(cell._segCoords['p0'][0], cell._segCoords['p1'][0])]),
@@ -459,17 +462,26 @@ def setupRecordDipole():
             cdm = lfpykit.CurrentDipoleMoment(cell=lfpykitCell)
             cell.M = cdm.get_transformation_matrix()
 
-            # set up recording of membrane currents (duplicate with setupRecordLFP -- unifiy and avoid calling twice)
-            nseg = cell.getNumberOfSegments()
-            cell.imembPtr = h.PtrVector(nseg)  # pointer vector
-            if neuron_version < '9.0.0':
-                cell.imembPtr.ptr_update_callback(
-                    cell.setImembPtr
-                )  # used for gathering an array of  i_membrane values from the pointer vector
-            cell.imembVec = h.Vector(nseg)
-
-        sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable
-        sim.cfg.use_fast_imem = True
+            if sim.cfg.coreneuron:
+                # CoreNEURON does not support PtrVector; use h.Vector.record() instead.
+                # imembVecs may already be populated by setupRecordLFP(); reuse to avoid double-recording.
+                if not hasattr(cell, 'imembVecs') or not cell.imembVecs:
+                    cell.imembVecs = []
+                    for sec in list(cell.secs.values()):
+                        hSec = sec['hObj']
+                        for seg in hSec:
+                            vec = h.Vector()
+                            vec.record(seg._ref_i_membrane_, sim.cfg.recordStep)
+                            cell.imembVecs.append(vec)
+            else:
+                # set up recording of membrane currents (duplicate with setupRecordLFP -- unifiy and avoid calling twice)
+                nseg = cell.getNumberOfSegments()
+                cell.imembPtr = h.PtrVector(nseg)  # pointer vector
+                if neuron_version < '9.0.0':
+                    cell.imembPtr.ptr_update_callback(
+                        cell.setImembPtr
+                    )  # used for gathering an array of  i_membrane values from the pointer vector
+                cell.imembVec = h.Vector(nseg)
 
 
 # ------------------------------------------------------------------------------
