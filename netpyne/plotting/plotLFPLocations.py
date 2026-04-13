@@ -105,7 +105,7 @@ def plotLFPLocations(sim=None, axis=None, electrodes=['all'], includeAxon=True, 
 
     includePost = [c.gid for c in sim.net.compartCells]
 
-    fig, data = sim.plotting.plotShape(
+    shape_plot = sim.plotting.plotShape(
         axis=axis,
         includePost=includePost,
         showElectrodes=electrodes,
@@ -114,6 +114,11 @@ def plotLFPLocations(sim=None, axis=None, electrodes=['all'], includeAxon=True, 
         kind='LFPLocations',
         **kwargs
     )
+
+    if shape_plot == -1:
+        return -1
+
+    fig, data = shape_plot
 
     if returnPlotter:
         return fig.metafig

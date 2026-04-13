@@ -585,13 +585,17 @@ def plotTimeSeriesPSD(
     plotColors = []
     legendLabels = []
     colorIndex = 0
-    offset = np.absolute(psds).max() * separation
+    offset = 0.0
+    if np.size(psds):
+        offset = float(np.absolute(psds).max()) * separation
 
     if axis == 'multi':
         offset = 0
         roundOffset = False
 
-    if roundOffset and offset != 0:
+    # All-zero PSDs are valid when the underlying signal is flat; keep the
+    # offset at zero instead of taking log10(0) while rounding it.
+    if roundOffset and np.isfinite(offset) and offset > 0:
         sigfigs = 1
         if type(roundOffset) == int:
             sigfigs = roundOffset

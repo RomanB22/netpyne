@@ -1301,6 +1301,9 @@ try:
                 self.ylabel = TextArea(labely)
                 bars = HPacker(children=[self.ylabel, bars], align="center", pad=0, sep=sep)
 
+            # Matplotlib 3.9's Artist.axes setter assumes custom artists already
+            # expose _axes when they are added to an Axes instance.
+            self._axes = None
             AnchoredOffsetbox.__init__(
                 self, loc, pad=pad, borderpad=borderpad, child=bars, prop=prop, frameon=False, **kwargs
             )
@@ -1394,6 +1397,8 @@ def _add_scalebar(
         axis.set_ylim(ylim)
 
     scalebar = _AnchoredScaleBar(axis, **kwargs)
+    if not hasattr(scalebar, '_axes'):
+        scalebar._axes = None
     axis.add_artist(scalebar)
 
     if hidex:

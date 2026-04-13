@@ -1,6 +1,6 @@
 from batchtk import runtk
 from batchtk.runtk.submits import Submit, Template, SHSubmit
-from batchtk.header.header import SOCKET_HANDLES, FILE_HANDLES, ALL_HANDLES
+from batchtk.header.header import SOCKET_HANDLES, FILE_HANDLES
 
 class SGESubmit(SHSubmit):
     SCRIPT_TEMPLATE = Template(
