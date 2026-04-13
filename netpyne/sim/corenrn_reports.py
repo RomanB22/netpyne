@@ -64,6 +64,7 @@ def init_report_state():
         'report_filename': report_filename,
         'report_population': report_population,
         'target_name': target_name,
+        'mapping_name': 'all',
         'record_step': float(sim.cfg.recordStep),
         'duration': float(sim.cfg.duration),
         'nsites': len(getattr(sim.cfg, 'recordLFP', [])),
@@ -74,6 +75,9 @@ def init_report_state():
         'config_files_written': False,
         'report_buffer_size': 8,
         'file_mode_armed': False,
+        'mapping_available': None,
+        'mapping_registered': 0,
+        'mapping_error': '',
     }
 
     sim._coreneuron_report_state = state
@@ -87,6 +91,72 @@ def _iter_cell_segments(cell):
             yield sec_index, seg
 
 
+def _build_section_segment_mapping(cell):
+    section_ids = []
+    segment_ids = []
+    order = []
+
+    for sec_index, sec in enumerate(list(cell.secs.values())):
+        hSec = sec['hObj']
+        for seg_index, _seg in enumerate(hSec):
+            section_ids.append(int(sec_index))
+            segment_ids.append(int(seg_index))
+            order.append((int(sec_index), int(seg_index)))
+
+    return order, section_ids, segment_ids
+
+
+def _register_cell_mapping(gid, section_ids, segment_ids, state):
+    from .. import sim
+
+    if state['mapping_available'] is None:
+        state['mapping_available'] = hasattr(sim.pc, 'nrnbbcore_register_mapping')
+        if not state['mapping_available']:
+            state['mapping_error'] = (
+                "The installed NEURON ParallelContext does not expose "
+                "nrnbbcore_register_mapping(), so CoreNEURON report metadata files "
+                "(gid_3.dat) cannot be generated."
+            )
+
+    if not state['mapping_available']:
+        return False
+
+    from neuron import h
+
+    sec_vec = h.Vector(len(section_ids))
+    seg_vec = h.Vector(len(segment_ids))
+    sec_vec.from_python(section_ids)
+    seg_vec.from_python(segment_ids)
+    try:
+        sim.pc.nrnbbcore_register_mapping(int(gid), state['mapping_name'], sec_vec, seg_vec)
+    except Exception as exc:
+        state['mapping_error'] = (
+            f"nrnbbcore_register_mapping failed for gid {int(gid)}: {exc}"
+        )
+        raise RuntimeError(state['mapping_error']) from exc
+    state['mapping_registered'] += 1
+    return True
+
+
+def _validate_mapping_support(state):
+    if state['mapping_available'] is False:
+        raise RuntimeError(
+            "cfg.coreneuronLFPBackend='report_imem' requires "
+            "ParallelContext.nrnbbcore_register_mapping() so CoreNEURON can write "
+            "gid_3.dat mapping files. "
+            f"{state['mapping_error']}"
+        )
+
+    missing = [gid for gid, info in state['cells'].items() if not info.get('mapping_registered')]
+    if missing:
+        preview = ', '.join(str(gid) for gid in missing[:8])
+        suffix = '...' if len(missing) > 8 else ''
+        raise RuntimeError(
+            "CoreNEURON report mapping registration did not complete for all local gids. "
+            f"Missing mappings for {len(missing)} gids: {preview}{suffix}"
+        )
+
+
 def register_cell_for_imem_report(cell):
     """Record lightweight per-cell metadata for future report-file generation."""
 
@@ -96,12 +166,16 @@ def register_cell_for_imem_report(cell):
         return
 
     nseg = int(cell.getNumberOfSegments())
+    segment_order, section_ids, segment_ids = _build_section_segment_mapping(cell)
+    mapping_registered = _register_cell_mapping(gid, section_ids, segment_ids, state)
     state['cells'][gid] = {
         'gid': gid,
         'pop': cell.tags.get('pop', ''),
         'nseg': nseg,
+        'mapping_name': state['mapping_name'],
+        'mapping_registered': mapping_registered,
     }
-    state['segment_order'][gid] = [(int(sec_index), float(seg.x)) for sec_index, seg in _iter_cell_segments(cell)]
+    state['segment_order'][gid] = segment_order
     state['total_cells'] += 1
     state['total_segments'] += nseg
 
@@ -183,7 +257,7 @@ def _write_report_conf(state):
         f'nA '
         f'SONATA '
         f'all '
-        f'all '
+        f'{state["mapping_name"]} '
         f'{state["record_step"]} '
         f'0.0 '
         f'{state["duration"]} '
@@ -212,6 +286,7 @@ def _write_manifest(state):
             'filename': state['report_filename'],
             'population': state['report_population'],
             'target_name': state['target_name'],
+            'mapping_name': state['mapping_name'],
             'variable': 'i_membrane',
             'unit': 'nA',
             'report_type': 'compartment',
@@ -229,6 +304,11 @@ def _write_manifest(state):
             'report_conf_path': state['report_conf_path'],
             'datpath': state['datpath'],
             'outpath': state['outpath'],
+        },
+        'mapping': {
+            'available': state.get('mapping_available'),
+            'registered_cells': state.get('mapping_registered', 0),
+            'error': state.get('mapping_error', ''),
         },
         'cells': manifest_cells,
         'totals': manifest_totals,
@@ -284,6 +364,7 @@ def finalize_report_setup():
     state = init_report_state()
     if state['config_files_written']:
         return
+    _validate_mapping_support(state)
     _write_runtime_configs(state)
 
     from .. import sim
