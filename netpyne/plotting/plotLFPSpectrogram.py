@@ -3,6 +3,7 @@
 from netpyne import __gui__
 
 if __gui__:
+    import matplotlib
     import matplotlib.pyplot as plt
 
 import math
@@ -249,7 +250,7 @@ def plotLFPSpectrogram(
         imageData['origin'] = 'lower'
         imageData['interpolation'] = 'None'
         imageData['aspect'] = 'auto'
-        imageData['cmap'] = plt.get_cmap('viridis')
+        imageData['cmap'] = matplotlib.colormaps['viridis']
 
         # Create a dictionary to hold axis inputs
         axisArgs = {}

@@ -8,10 +8,7 @@ Contains pointCell class
 Contributors: salvadordura@gmail.com, samnemo@gmail.com
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from copy import deepcopy
 from neuron import h  # Import NEURON

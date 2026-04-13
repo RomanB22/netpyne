@@ -3,10 +3,7 @@ Module for creating network connections
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import numpy as np
 from array import array as arrayFast

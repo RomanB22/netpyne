@@ -3,14 +3,7 @@ Module for loading of data and simulations
 
 """
 
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import sys
 from collections import OrderedDict

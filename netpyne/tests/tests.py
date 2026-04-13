@@ -3,10 +3,7 @@ Module for testing code
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import unittest
 import numbers

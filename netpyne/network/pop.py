@@ -3,10 +3,7 @@ Module defining Population class and methods
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from numpy import pi, sqrt, sin, cos, arccos
 import numpy as np

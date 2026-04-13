@@ -7,10 +7,7 @@ from numbers import Number
 from neuron import h
 from numpy import array, sin, cos, tan, exp, remainder, sqrt, arctan2, pi, mean, inf, dstack, unravel_index, argsort, zeros, ceil, copy, log, log10
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 
 def generateStringFunction(sourceStr, vars):

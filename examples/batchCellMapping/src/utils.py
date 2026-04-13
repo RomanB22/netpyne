@@ -5,6 +5,7 @@ General functions to analyse simulation data
 """
 import json
 import pickle
+import matplotlib
 import numpy as np
 from pylab import *
 from itertools import product
@@ -114,6 +115,6 @@ def setPlotFormat(numColors=8):
     plt.rcParams['legend.fontsize'] = 'large'
 
     NUM_COLORS = numColors
-    colormap = plt.get_cmap('gist_rainbow')
+    colormap = matplotlib.colormaps['gist_rainbow']
     colorlist = [colormap(1.*i/NUM_COLORS) for i in range(NUM_COLORS)]
     plt.rc('axes', prop_cycle=(cycler('color', colorlist)))

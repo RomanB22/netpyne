@@ -3,10 +3,7 @@ Module with functions to extract and plot CSD info from LFP data
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import numpy as np
 import scipy

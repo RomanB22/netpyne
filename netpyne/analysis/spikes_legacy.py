@@ -3,14 +3,12 @@ Module for anaysis and plotting of spiking-related results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 
 if __gui__:
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec
     from matplotlib import mlab
@@ -2345,7 +2343,7 @@ def plotRateSpectrogram(
             origin='lower',
             interpolation='None',
             aspect='auto',
-            cmap=plt.get_cmap('viridis'),
+            cmap=matplotlib.colormaps['viridis'],
         )
         plt.colorbar(label='Power')
         plt.ylabel('Time (ms)')

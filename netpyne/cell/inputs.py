@@ -5,10 +5,7 @@ Module with functions to create patterned spike inputs in cells
 
 from numbers import Number
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from neuron import h
 import numpy as np

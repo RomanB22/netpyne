@@ -3,10 +3,7 @@ Module for analyzing and plotting information theory results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

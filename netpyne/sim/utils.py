@@ -5,10 +5,7 @@ Module for utilities related to simulation
 
 from netpyne.support.recxelectrode import RecXElectrode
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from time import time
 import hashlib

@@ -2,10 +2,7 @@ import numpy as np
 from schema import Schema, Optional, And, Or, Use, Hook, SchemaError
 from collections import ChainMap
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 # warning messages
 CELL_TYPE_MATCH_ERROR = "Could not match '{0}' to a cellParams label or to the 'cellType' in 'conds' in cellParams."

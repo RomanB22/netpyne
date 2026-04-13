@@ -3,10 +3,7 @@ Module containing a generic cell class
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from numbers import Number
 from copy import deepcopy

@@ -3,12 +3,6 @@ Module containing SimConfig class including simulation configuration and methods
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 from collections import OrderedDict
 from .dicts import Dict, ODict
 

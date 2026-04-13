@@ -3,16 +3,7 @@ Module containing classes for high-level network parameters and methods
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from collections import OrderedDict
 from .dicts import Dict, ODict

@@ -3,12 +3,6 @@ Module for setting up and running batch simulations
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 import datetime
 from time import time
 

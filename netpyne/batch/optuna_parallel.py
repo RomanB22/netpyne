@@ -3,12 +3,6 @@ Module for Optuna hyperparameter optimization (optuna.org)
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 import pickle
 
 from neuron import h

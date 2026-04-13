@@ -3,10 +3,7 @@ Module for generating a shape plot (3D network layout)
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

@@ -3,12 +3,6 @@ Module related to saving
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 import os
 from time import time, sleep
 from datetime import datetime
@@ -48,7 +42,7 @@ def saveJSON(fileName, data, checkFileTimeout=0):
 
     with io.open(fileName, 'w', encoding='utf-8') as fileObj:
         str_ = json.dumps(data, indent=4, sort_keys=True, separators=(',', ': '), ensure_ascii=False, cls=NpSerializer)
-        fileObj.write(to_unicode(str_))
+        fileObj.write(str_)
 
     if checkFileTimeout > 0:
         sleepTime = 0.1

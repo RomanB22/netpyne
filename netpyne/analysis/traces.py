@@ -3,10 +3,7 @@ Module for analysis and plotting of traces-related results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

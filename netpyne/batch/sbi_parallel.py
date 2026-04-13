@@ -5,12 +5,6 @@ Module for SBI optimization
 from lib2to3.pytree import NegatedPattern
 
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 from subprocess import Popen
 import numpy as np
 from scipy.stats import kurtosis

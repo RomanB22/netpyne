@@ -5,10 +5,7 @@ Module for adding stimulations to networks
 
 from numbers import Number
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 
 # -----------------------------------------------------------------------------

@@ -3,14 +3,12 @@ Module for analyzing and plotting LFP-related results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 
 if __gui__:
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import mlab
 import numpy as np
@@ -560,7 +558,7 @@ def plotLFP(
                     aspect='auto',
                     vmin=vc[0],
                     vmax=vc[1],
-                    cmap=plt.get_cmap('viridis'),
+                    cmap=matplotlib.colormaps['viridis'],
                 )
                 if normSpec:
                     plt.colorbar(label='Normalized power')

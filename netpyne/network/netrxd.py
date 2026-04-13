@@ -3,10 +3,7 @@ Module for adding reaction-diffusion to network models
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import copy
 

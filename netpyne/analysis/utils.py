@@ -3,15 +3,7 @@ Module for utilities to help analyze and plot results
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 
@@ -52,7 +44,7 @@ if colorListType == 'alternate':
 elif colorListType == 'graded' and __gui__:
     import matplotlib
 
-    cmap = matplotlib.cm.get_cmap('jet')
+    cmap = matplotlib.colormaps['jet']
     colorList = [cmap(x) for x in np.linspace(0, 1, 12)]
 
 # -------------------------------------------------------------------------------------------------------------------

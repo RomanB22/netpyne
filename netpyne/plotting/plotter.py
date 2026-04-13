@@ -15,10 +15,7 @@ from copy import deepcopy
 import pickle, json
 import os
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 
 colorList = [

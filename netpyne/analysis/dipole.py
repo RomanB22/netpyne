@@ -5,10 +5,7 @@ Module for analyzing and plotting LFP-related results
 
 import os
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

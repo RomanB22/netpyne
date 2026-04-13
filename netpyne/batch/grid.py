@@ -3,12 +3,6 @@ Module for grid search parameter optimization and exploration
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 import pandas as pd
 import os, sys
 import glob

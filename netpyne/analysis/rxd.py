@@ -3,10 +3,7 @@ Module for plotting and analysis of reaction/diffusion-related results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

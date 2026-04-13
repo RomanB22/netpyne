@@ -3,14 +3,7 @@ Module for utilities to help analyze and plot results
 
 """
 
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import functools
 import sys

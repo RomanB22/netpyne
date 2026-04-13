@@ -5,12 +5,10 @@ Module for production of interactive plots
 
 from netpyne import __gui__
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 if __gui__:
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import mlab
     from matplotlib_scalebar import scalebar
@@ -769,7 +767,7 @@ def iplotDipoleSpectrogram(
         aspect='auto',
         vmin=vc[0],
         vmax=vc[1],
-        cmap=plt.get_cmap('jet'),
+        cmap=matplotlib.colormaps['jet'],
     )  # viridis
     plt.colorbar(label='Power')
     plt.gca().invert_yaxis()

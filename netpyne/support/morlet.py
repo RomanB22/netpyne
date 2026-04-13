@@ -12,6 +12,7 @@ Time-frequency representation using Morlet wavelets
 
 from netpyne import __gui__
 if __gui__:
+    import matplotlib
     import matplotlib.pyplot as plt
 
 import numpy as np
@@ -92,7 +93,7 @@ class MorletSpec:
 
     def plot_to_ax(self, ax_spec, dt):
         # plots spec to axis
-        pc = ax_spec.imshow(self.TFR, aspect='auto', origin='upper', cmap=plt.get_cmap('jet'))
+        pc = ax_spec.imshow(self.TFR, aspect='auto', origin='upper', cmap=matplotlib.colormaps['jet'])
         return pc
 
     def transform(self, tsvec, getphase=False):

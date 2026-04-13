@@ -3,14 +3,7 @@ Module for analysis of spiking-related results
 
 """
 
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 import pandas as pd
 import numpy as np

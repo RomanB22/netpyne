@@ -5,10 +5,7 @@ Module containing a compartmental cell class
 
 from netpyne.specs.netParams import CellParams, SynMechParams
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from numbers import Number
 from copy import deepcopy

@@ -7,6 +7,7 @@ Functions to read and plot figures from the batch simulation results.
 import json
 import pandas as pd
 import seaborn as sb
+import matplotlib
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
@@ -142,7 +143,7 @@ def setPlotFormat(numColors=8):
     plt.rcParams['legend.fontsize'] = 'large'
 
     NUM_COLORS = numColors
-    colormap = plt.get_cmap('nipy_spectral')
+    colormap = matplotlib.colormaps['nipy_spectral']
     colorlist = [colormap(1.*i/NUM_COLORS) for i in range(NUM_COLORS)]
 
     plt.rc('axes', prop_cycle=(cycler('color', colorlist)))

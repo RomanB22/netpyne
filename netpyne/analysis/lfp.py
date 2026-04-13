@@ -3,10 +3,7 @@ Module for analyzing LFP-related results
 
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
+basestring = str
 
 from netpyne import __gui__
 

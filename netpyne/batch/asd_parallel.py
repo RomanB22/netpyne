@@ -3,12 +3,6 @@ Module for adaptive stochastic descent optimization
 
 """
 
-# required to make json saving work in Python 2/3
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
-
 from time import sleep, time
 from subprocess import Popen
 import numpy.random as nr
