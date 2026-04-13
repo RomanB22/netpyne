@@ -388,6 +388,31 @@ def prepare_report_run():
     state['previous_file_mode'] = getattr(coreneuron, 'file_mode', False)
     coreneuron.file_mode = True
     sim_conf_path = _normalise_path(state['sim_conf_path'])
+    datpath = _normalise_path(state['datpath'])
+
+    if not hasattr(coreneuron, 'nrncore_arg'):
+        raise AttributeError(
+            "The installed neuron.coreneuron module does not expose nrncore_arg, "
+            "so NetPyNE cannot direct CoreNEURON file mode to the configured datpath."
+        )
+
+    state['previous_nrncore_arg'] = coreneuron.nrncore_arg
+
+    def nrncore_arg_with_netpyne_config(
+        tstop,
+        _orig=state['previous_nrncore_arg'],
+        _datpath=datpath,
+        _sim_conf_path=sim_conf_path,
+        _use_read_config=not hasattr(coreneuron, 'sim_config'),
+    ):
+        arg = _orig(tstop)
+        if '--datpath' not in arg:
+            arg = f'{arg} --datpath {_datpath}'
+        if _use_read_config and '--read-config' not in arg:
+            arg = f'{arg} --read-config {_sim_conf_path}'
+        return arg
+
+    coreneuron.nrncore_arg = nrncore_arg_with_netpyne_config
 
     from .. import sim
 
@@ -395,26 +420,14 @@ def prepare_report_run():
         state['previous_sim_config'] = getattr(coreneuron, 'sim_config', '')
         coreneuron.sim_config = sim_conf_path
         state['sim_config_mode'] = 'attribute'
-    elif hasattr(coreneuron, 'nrncore_arg'):
-        state['previous_nrncore_arg'] = coreneuron.nrncore_arg
-
-        def nrncore_arg_with_config(tstop, _orig=state['previous_nrncore_arg'], _sim_conf_path=sim_conf_path):
-            arg = _orig(tstop)
-            if '--read-config' in arg:
-                return arg
-            return f'{arg} --read-config {_sim_conf_path}'
-
-        coreneuron.nrncore_arg = nrncore_arg_with_config
-        state['sim_config_mode'] = 'nrncore_arg'
     else:
-        raise AttributeError(
-            "The installed neuron.coreneuron module exposes neither sim_config nor nrncore_arg, "
-            "so NetPyNE cannot pass sim.conf to CoreNEURON."
-        )
+        state['sim_config_mode'] = 'nrncore_arg'
 
     state['file_mode_armed'] = True
-    if sim.rank == 0 and state['sim_config_mode'] == 'nrncore_arg':
-        print('  CoreNEURON sim_config attribute not available; passing sim.conf via --read-config.')
+    if sim.rank == 0:
+        print(f'  Passing CoreNEURON datpath via --datpath {datpath}.')
+        if state['sim_config_mode'] == 'nrncore_arg':
+            print('  CoreNEURON sim_config attribute not available; passing sim.conf via --read-config.')
 
 
 def cleanup_report_run():
@@ -427,7 +440,7 @@ def cleanup_report_run():
     coreneuron.file_mode = state.get('previous_file_mode', False)
     if state.get('sim_config_mode') == 'attribute' and hasattr(coreneuron, 'sim_config'):
         coreneuron.sim_config = state.get('previous_sim_config', '')
-    elif state.get('sim_config_mode') == 'nrncore_arg' and hasattr(coreneuron, 'nrncore_arg'):
+    if hasattr(coreneuron, 'nrncore_arg') and 'previous_nrncore_arg' in state:
         coreneuron.nrncore_arg = state.get('previous_nrncore_arg', coreneuron.nrncore_arg)
     state['file_mode_armed'] = False
 
