@@ -9,7 +9,7 @@ import numpy as np
 from neuron import h, __version__ as neuron_version # Import NEURON
 from .. import specs
 from ..specs import Dict, ODict
-from . import utils, validator
+from . import corenrn_reports, utils, validator
 from netpyne.specs.simConfig import SimConfig
 
 try:
@@ -361,7 +361,11 @@ def setupRecordLFP():
         sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable (must be before recording loop)
         sim.cfg.use_fast_imem = True
 
-        if sim.cfg.coreneuron:
+        report_backend = corenrn_reports.use_report_imem_backend(sim.cfg)
+        if report_backend:
+            corenrn_reports.init_report_state()
+
+        if sim.cfg.coreneuron and not report_backend:
             # CoreNEURON does not support Python callbacks (cvode.event / FInitializeHandler)
             # or PtrVector during simulation. Instead, use h.Vector.record() which CoreNEURON
             # supports natively. LFP is then computed post-hoc in calculateLFPPosthoc().
@@ -382,7 +386,9 @@ def setupRecordLFP():
                     cell.gid, cell._segCoords
                 )  # transfer resistance for each cell
 
-            if sim.cfg.coreneuron:
+            if report_backend:
+                corenrn_reports.register_cell_for_imem_report(cell)
+            elif sim.cfg.coreneuron:
                 # Record i_membrane_ at recordStep intervals via Vector.record (CoreNEURON-compatible).
                 # Vectors are freed cell-by-cell in calculateLFPPosthoc() to minimise peak memory.
                 cell.imembVecs = []
@@ -399,6 +405,9 @@ def setupRecordLFP():
                         cell.setImembPtr
                     )  # used for gathering an array of i_membrane values from the pointer vector
                 cell.imembVec = h.Vector(nseg)
+
+        if report_backend:
+            corenrn_reports.finalize_report_setup()
 
 
 # ------------------------------------------------------------------------------
@@ -451,6 +460,10 @@ def setupRecordDipole():
         sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable (must be before Vector.record calls)
         sim.cfg.use_fast_imem = True
 
+        report_backend = corenrn_reports.use_report_imem_backend(sim.cfg)
+        if report_backend:
+            corenrn_reports.init_report_state()
+
         for cell in sim.net.compartCells:
             lfpykitCell = lfpykit.CellGeometry(
                 x=np.array([[p0, p1] for p0, p1 in zip(cell._segCoords['p0'][0], cell._segCoords['p1'][0])]),
@@ -462,7 +475,9 @@ def setupRecordDipole():
             cdm = lfpykit.CurrentDipoleMoment(cell=lfpykitCell)
             cell.M = cdm.get_transformation_matrix()
 
-            if sim.cfg.coreneuron:
+            if report_backend:
+                corenrn_reports.register_cell_for_imem_report(cell)
+            elif sim.cfg.coreneuron:
                 # CoreNEURON does not support PtrVector; use h.Vector.record() instead.
                 # imembVecs may already be populated by setupRecordLFP(); reuse to avoid double-recording.
                 if not hasattr(cell, 'imembVecs') or not cell.imembVecs:
@@ -482,6 +497,9 @@ def setupRecordDipole():
                         cell.setImembPtr
                     )  # used for gathering an array of  i_membrane values from the pointer vector
                 cell.imembVec = h.Vector(nseg)
+
+        if report_backend:
+            corenrn_reports.finalize_report_setup()
 
 
 # ------------------------------------------------------------------------------

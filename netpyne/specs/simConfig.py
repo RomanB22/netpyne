@@ -25,6 +25,10 @@ class SimConfig(object):
         self.hParams = Dict({'celsius': 6.3, 'v_init': -65.0, 'clamp_resist': 0.001})  # parameters of h module
         self.coreneuron = False  # use CoreNEURON to run the simulation (alpha version)
         self.dump_coreneuron_model = False  # dump CoreNEURON model
+        self.coreneuronLFPBackend = 'vector'  # CoreNEURON LFP backend: 'vector' (current) or 'report_imem' (SONATA i_membrane report)
+        self.coreneuronReportDir = ''  # optional output directory for the CoreNEURON report backend
+        self.coreneuronReportName = 'imembrane'  # base name for the CoreNEURON i_membrane report output
+        self.coreneuronReportPopulation = ''  # optional SONATA population/group path inside the report HDF5 file
         self.random123 = False  # enable Random123 random number generator
         self.cache_efficient = False  # use CVode cache_efficient option to optimize load when running on many cores
         self.gpu = False  # enable GPU execution in CoreNEURON

@@ -5,7 +5,7 @@ Module for running simulations
 
 import numpy as np
 from neuron import h  # Import NEURON
-from . import utils
+from . import corenrn_reports, utils
 
 
 # ------------------------------------------------------------------------------
@@ -171,6 +171,8 @@ def runSim(skipPreRun=False):
         sim.pc.barrier()
         return
 
+    report_backend = sim.cfg.coreneuron and corenrn_reports.use_report_imem_backend(sim.cfg)
+
     if sim.cfg.coreneuron == True:
         if sim.rank == 0:
             print('\nRunning simulation using CoreNEURON for %s ms...' % sim.cfg.duration)
@@ -180,17 +182,28 @@ def runSim(skipPreRun=False):
         if sim.cfg.gpu == True:
             coreneuron.gpu = True
             coreneuron.cell_permute = 2
+
+        if report_backend and sim.rank == 0:
+            print('  Using CoreNEURON report_imem backend.')
     else:
         if sim.rank == 0:
             print('\nRunning simulation using NEURON for %s ms...' % sim.cfg.duration)
 
-    postRun()
+    try:
+        postRun()
 
-    # CoreNEURON does not support online LFP/dipole callbacks; compute post-hoc from recorded vectors.
-    if sim.cfg.coreneuron and (sim.cfg.recordLFP or sim.cfg.saveIMembrane or sim.cfg.recordDipole):
-        if sim.rank == 0:
-            print('  Computing LFP/dipole post-hoc from recorded i_membrane_ vectors...')
-        sim.calculateLFPPosthoc()
+        # CoreNEURON does not support online LFP/dipole callbacks; compute post-hoc after the run.
+        if report_backend:
+            if sim.rank == 0:
+                print('  Computing LFP post-hoc from CoreNEURON i_membrane report...')
+            corenrn_reports.calculate_lfp_from_report()
+        elif sim.cfg.coreneuron and (sim.cfg.recordLFP or sim.cfg.saveIMembrane or sim.cfg.recordDipole):
+            if sim.rank == 0:
+                print('  Computing LFP/dipole post-hoc from recorded i_membrane_ vectors...')
+            sim.calculateLFPPosthoc()
+    finally:
+        if report_backend:
+            corenrn_reports.cleanup_report_run()
 
 
 def postRun(stopTime=None):
@@ -205,12 +218,18 @@ def postRun(stopTime=None):
     if (stopTime is None) or (stopTime != sim.cfg.duration):
         tstop = sim.cfg.duration
 
+        report_backend = sim.cfg.coreneuron and corenrn_reports.use_report_imem_backend(sim.cfg)
+
+        if report_backend:
+            corenrn_reports.prepare_report_run()
+
         # CoreNEURON can buffer trajectory data and return it only at the end of the
         # run, but NetPyNE's post-hoc LFP/dipole path depends on recorded i_membrane_
         # vectors being transferred back reliably. When those features are active,
         # request direct trajectory return explicitly.
         if (
             sim.cfg.coreneuron
+            and not report_backend
             and (sim.cfg.recordLFP or sim.cfg.saveIMembrane or sim.cfg.recordDipole)
             and hasattr(sim.pc, 'nrncore_run')
         ):

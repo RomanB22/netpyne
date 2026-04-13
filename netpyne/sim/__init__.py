@@ -34,6 +34,9 @@ from .setup import (
 # import run functions
 from .run import preRun, runSim, runSimWithIntervalFunc, loadBalance, calculateLFP, calculateLFPPosthoc, calculateDipole
 
+# import experimental CoreNEURON report-backend helpers
+from .corenrn_reports import calculate_lfp_from_report as calculateLFPFromCoreNeuronReport
+
 # import gather functions
 from .gather import gatherData, _gatherAllCellTags, _gatherAllCellConnPreGids, _gatherCells, gatherDataFromFiles
 
@@ -144,4 +147,3 @@ else:
         except Exception as e:
             print("exception: {}".format(e))
         pass
-
