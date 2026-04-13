@@ -1348,6 +1348,9 @@ def _add_scalebar(
             tick_size = np.abs(tick_locs[1] - tick_locs[0])
         return tick_size
 
+    def has_size(value):
+        return value is not None and np.isfinite(value) and abs(value) > 0
+
     if matchx:
         sizex = get_tick_size(axis.xaxis)
     if matchy:
@@ -1370,10 +1373,22 @@ def _add_scalebar(
             m /= 10.0
         return value
 
-    if ymax is not None and sizey > ymax:
+    if ymax is not None and ymax <= 0:
+        sizey = 0
+    elif ymax is not None and has_size(sizey) and sizey > ymax:
         sizey = autosize(sizey, ymax, scaley)
-    if xmax is not None and sizex > xmax:
+    if xmax is not None and xmax <= 0:
+        sizex = 0
+    elif xmax is not None and has_size(sizex) and sizex > xmax:
         sizex = autosize(sizex, xmax, scalex)
+
+    if not has_size(sizex):
+        sizex = 0
+    if not has_size(sizey):
+        sizey = 0
+
+    if sizex == 0 and sizey == 0:
+        return None
 
     kwargs['sizex'] = sizex
     kwargs['sizey'] = sizey

@@ -578,7 +578,7 @@ def plotTimeSeries(
         axisArgs['legend'] = legendKwargs
 
     # add the scalebar
-    if scalebar:
+    if scalebar and offset > 0:
         # axisArgs['scalebar'] = True
         args = {}
         args['hidey'] = True
