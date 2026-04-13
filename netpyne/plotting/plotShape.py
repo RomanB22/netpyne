@@ -222,7 +222,7 @@ def plotShape(
 
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
             sm._A = []  # fake up the array of the scalar mappable
-            cb = plt.colorbar(sm, fraction=0.15, shrink=0.5, pad=0.05, aspect=20)
+            cb = plt.colorbar(sm, ax=ax, fraction=0.15, shrink=0.5, pad=0.05, aspect=20)
             if cvar:
                 cb.set_label(cbLabels[cvar], rotation=90, fontsize=fontSize)
 

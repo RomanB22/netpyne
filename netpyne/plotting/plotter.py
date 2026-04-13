@@ -1301,9 +1301,9 @@ try:
                 self.ylabel = TextArea(labely)
                 bars = HPacker(children=[self.ylabel, bars], align="center", pad=0, sep=sep)
 
-                AnchoredOffsetbox.__init__(
-                    self, loc, pad=pad, borderpad=borderpad, child=bars, prop=prop, frameon=False, **kwargs
-                )
+            AnchoredOffsetbox.__init__(
+                self, loc, pad=pad, borderpad=borderpad, child=bars, prop=prop, frameon=False, **kwargs
+            )
 except NameError:
     print("-nogui passed, matplotlib is unavailable")
 

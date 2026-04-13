@@ -591,7 +591,7 @@ def plotTimeSeriesPSD(
         offset = 0
         roundOffset = False
 
-    if roundOffset:
+    if roundOffset and offset != 0:
         sigfigs = 1
         if type(roundOffset) == int:
             sigfigs = roundOffset
