@@ -20,6 +20,13 @@ def preRun():
 
     from .. import sim
 
+    # CoreNEURON's direct mode expects cache_efficient(1). NetPyNE also relies on
+    # direct trajectory transfer when reconstructing LFP/dipole from i_membrane_.
+    if sim.cfg.coreneuron and not sim.cfg.cache_efficient:
+        sim.cfg.cache_efficient = True
+        if sim.rank == 0:
+            print('  Enabling cache_efficient for CoreNEURON compatibility.')
+
     # set initial v of cells
     for cell in sim.net.cells:
         sim.fih.append(h.FInitializeHandler(0, cell.initV))
@@ -196,7 +203,24 @@ def postRun(stopTime=None):
     from .. import sim
 
     if (stopTime is None) or (stopTime != sim.cfg.duration):
-        sim.pc.psolve(sim.cfg.duration)
+        tstop = sim.cfg.duration
+
+        # CoreNEURON can buffer trajectory data and return it only at the end of the
+        # run, but NetPyNE's post-hoc LFP/dipole path depends on recorded i_membrane_
+        # vectors being transferred back reliably. When those features are active,
+        # request direct trajectory return explicitly.
+        if (
+            sim.cfg.coreneuron
+            and (sim.cfg.recordLFP or sim.cfg.saveIMembrane or sim.cfg.recordDipole)
+            and hasattr(sim.pc, 'nrncore_run')
+        ):
+            from neuron import coreneuron
+
+            if sim.rank == 0:
+                print('  Using CoreNEURON direct trajectory return for recorded vectors...')
+            sim.pc.nrncore_run(coreneuron.nrncore_arg(tstop), 1)
+        else:
+            sim.pc.psolve(tstop)
 
     sim.pc.barrier()  # Wait for all hosts to get to this point
     sim.timing('stop', 'runTime')
