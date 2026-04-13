@@ -358,6 +358,9 @@ def setupRecordLFP():
             sim.simData['iMembrane'][c.gid] = np.zeros((saveSteps, c.getNumberOfSegments()), dtype=np.float32)
 
     if sim.cfg.createNEURONObj:
+        sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable (must be before recording loop)
+        sim.cfg.use_fast_imem = True
+
         if sim.cfg.coreneuron:
             # CoreNEURON does not support Python callbacks (cvode.event / FInitializeHandler)
             # or PtrVector during simulation. Instead, use h.Vector.record() which CoreNEURON
@@ -396,9 +399,6 @@ def setupRecordLFP():
                         cell.setImembPtr
                     )  # used for gathering an array of i_membrane values from the pointer vector
                 cell.imembVec = h.Vector(nseg)
-
-        sim.cvode.use_fast_imem(True)  # make i_membrane_ a range variable
-        sim.cfg.use_fast_imem = True
 
 
 # ------------------------------------------------------------------------------
